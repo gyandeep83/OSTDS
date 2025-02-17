@@ -1,0 +1,11 @@
+numpy
+pandas
+matplotlib
+seaborn
+django
+djangorestframework
+django-cors-headers
+gunicorn
+whitenoise
+plotly
+scipy

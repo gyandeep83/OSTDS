@@ -1,0 +1,4 @@
+2025-02-10 17:58:12,826 - WARNING - Running analysis on single file only
+2025-02-10 17:58:12,827 - INFO - Attempting to load data from: /Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/01-01-2021.csv/data/01-01-2021.csv
+2025-02-10 17:58:12,827 - ERROR - File not found at path: processed_data.csv. Please check the file path.
+2025-02-10 17:58:12,827 - ERROR - Data loading failed. Exiting the script.
