@@ -64,7 +64,7 @@ npm start
 
 ## Technologies Used
 
-1. Backend: Django, Pandas, SQLite
+1. Backend: Django, Pandas
 2. Frontend: React, Chart.js, D3.js
 3. Data Source: Processed COVID-19 CSV datasets
 
