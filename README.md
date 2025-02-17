@@ -4,6 +4,7 @@ This project analyzes COVID-19 data using Django for the backend and React for t
 
 Features
 
+```
 ✅ Time Series Analysis 📈
 ✅ Correlation Heatmap 🔥
 ✅ Pie Chart for Top 10 States 🍕
@@ -11,23 +12,24 @@ Features
 ✅ Bar Chart for Active Cases 📊
 ✅ Case Fatality Ratio (CFR) ⚰️
 ✅ Scatter Plot for Incident Rate vs. CFR 🎯
+```
 
-
+```
 OSTDS/
-|-assign_1_corona
-|  |-api/
-|  |-src/
-|  │── backend/           # Django backend for data processing
-|  │   ├── manage.py      # Django entry point
-|  │   ├── api/           # API views for fetching data
-|  │   ├── models/        # Database models
-|  │   ├── requirements.txt  # Python dependencies
-|  │── frontend/          # React frontend for visualizations
-|  │   ├── src/           # Main React source code
-|  │   ├── public/        # Static files
-|  │── data/              # CSV files and datasets
-|  │── README.md          # Project documentation
-
+├── assign_1_corona/
+│   ├── api/
+│   ├── src/
+│   │   ├── backend/              # Django backend for data processing
+│   │   │   ├── manage.py         # Django entry point
+│   │   │   ├── api/              # API views for fetching data
+│   │   │   ├── models/           # Database models
+│   │   │   ├── requirements.txt  # Python dependencies
+│   │   ├── frontend/             # React frontend for visualizations
+│   │   │   ├── src/              # Main React source code
+│   │   │   ├── public/           # Static files
+│   │   ├── data/                 # CSV files and datasets
+│   │   ├── README.md             # Project documentation
+```
 
 ## Setup Instructions
 
