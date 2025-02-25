@@ -6,7 +6,6 @@ Features
 
 ```
 ✅ Time Series Analysis 📈
-✅ Correlation Heatmap 🔥
 ✅ Pie Chart for Top 10 States 🍕
 ✅ Geographic Spread Visualization 🌍
 ✅ Bar Chart for Active Cases 📊
