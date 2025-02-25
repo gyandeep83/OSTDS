@@ -1,53 +1,102 @@
+#view.py-This is the main program and entrypoint of project.
+#Author-Gyan deep, (gd034281@gmail.com)
+#Description-We are doing data analysis and cleaning.
+
+
+
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from logger import setup_logger
 import os
+import logging
 
 
-def clean_data(df, logger):
-    df.dropna(inplace=True)
-    df["Last_Update"] = pd.to_datetime(df["Last_Update"])
 
-    logger.info(f"Columns in the dataset: {df.columns.tolist()}")
+# Setup logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+DATA_DIR = " "
+CLEANED_DIR = " "
+
+def clean_data(df):
+    if "Last_Update" in df.columns:
+        df["Last_Update"] = pd.to_datetime(df["Last_Update"], errors="coerce")
+    else:
+        logger.warning("Skipping file: Missing 'Last_Update' column")
+        return pd.DataFrame()  # Return empty DataFrame if column is missing
+
+    logger.info(f"Columns in dataset: {df.columns.tolist()}")
 
     if "Country_Region" not in df.columns:
         logger.error("'Country_Region' column not found.")
         return pd.DataFrame()
 
-    df = df[df["Country_Region"] == "US"]
+    # Use global data instead of just US
     df.drop(columns=["Long_", "Lat"], errors="ignore", inplace=True)
 
     return df
 
 
-def load_data(file_path):
+
+def load_data(file_path, logger):
+    """Loads a CSV file into a DataFrame."""
     try:
-        data = pd.read_csv(
-            "/Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/01-01-2021.csv"
-        )
-        logger.info("Data successfully loaded")
-        return data
+        df = pd.read_csv(file_path)
+        logger.info(f"Loaded data from {file_path} with {len(df)} rows")
+        return df
     except FileNotFoundError:
-        logger.error(
-            f"File not found at path: {file_path}. Please check the file path."
-        )
+        logger.error(f"File not found: {file_path}")
     except pd.errors.ParserError:
-        logger.error("Error reading the CSV file. It may be malformed.")
+        logger.error(f"Error reading CSV: {file_path}")
     except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
+        logger.error(f"Unexpected error: {e}")
 
     return None
 
 
-def save_cleaned_data(df, file_path):
+def save_cleaned_data(df, output_file, logger):
+    """Saves the cleaned DataFrame to a new CSV file."""
     try:
-        df.to_csv(file_path, index=False)
-        logger.info(f"Cleaned data saved to {file_path}")
+        df.to_csv(output_file, index=False)
+        logger.info(f"Saved cleaned data to {output_file} with {len(df)} rows")
     except Exception as e:
         logger.error(f"Failed to save cleaned data: {e}")
 
 
+def process_all_files(input_dir, output_dir, logger):
+    """Process all CSV files in the input directory and save cleaned data to output directory."""
+    for filename in os.listdir(input_dir):
+        if filename.endswith(".csv"):
+            file_path = os.path.join(input_dir, filename)
+            logger.info(f"📂 Processing file: {file_path}")
+
+            df = pd.read_csv(file_path)
+            cleaned_df = clean_data(df)
+
+            if not cleaned_df.empty:
+                cleaned_file_path = os.path.join(output_dir, filename)
+                cleaned_df.to_csv(cleaned_file_path, index=False)
+                logger.info(f"✅ Saved cleaned file: {cleaned_file_path}")
+
+if __name__ == "__main__":
+    logger.info("🚀 Starting CSV cleaning process...")
+    process_all_files(DATA_DIR, CLEANED_DIR, logger)  # ✅ Now correctly passing arguments
+    logger.info("🎯 Cleaning process completed!")
+
+
+if __name__ == "__main__":
+    logger = setup_logger(log_level="DEBUG")
+
+    input_directory = " "
+    output_directory = " "
+
+    logger.info("Starting batch processing for all CSV files...")
+    process_all_files(input_directory, output_directory, logger)
+    logger.info("Batch processing completed.")
+
+"""
 def analyze_data(cleaned_data):
     if cleaned_data.empty:
         logger.warning("No data available for analysis.")
@@ -116,3 +165,4 @@ if __name__ == "__main__":
             logger.error("Cleaned data is empty. Exiting the script.")
     else:
         logger.error("Data loading failed. Exiting the script.")
+"""

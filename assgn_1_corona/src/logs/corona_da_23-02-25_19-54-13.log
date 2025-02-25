@@ -1,0 +1,12 @@
+2025-02-23 19:54:13,145 - INFO - Starting batch processing for all CSV files...
+2025-02-23 19:54:13,145 - INFO - Processing file: /Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/processed_data.csv
+2025-02-23 19:54:13,160 - INFO - Loaded data from /Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/processed_data.csv with 3194 rows
+2025-02-23 19:54:13,166 - INFO - Columns after cleaning: ['FIPS', 'Admin2', 'Province_State', 'Country_Region', 'Last_Update', 'Confirmed', 'Deaths', 'Recovered', 'Active', 'Combined_Key', 'Incident_Rate', 'Case_Fatality_Ratio']
+2025-02-23 19:54:13,166 - INFO - Remaining rows after cleaning: 3194
+2025-02-23 19:54:13,189 - INFO - Saved cleaned data to /Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/cleaned_reports/processed_data.csv with 3194 rows
+2025-02-23 19:54:13,189 - INFO - Processing file: /Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/01-01-2021.csv
+2025-02-23 19:54:13,197 - INFO - Loaded data from /Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/01-01-2021.csv with 4011 rows
+2025-02-23 19:54:13,200 - INFO - Columns after cleaning: ['FIPS', 'Admin2', 'Province_State', 'Country_Region', 'Last_Update', 'Lat', 'Long_', 'Confirmed', 'Deaths', 'Recovered', 'Active', 'Combined_Key', 'Incident_Rate', 'Case_Fatality_Ratio']
+2025-02-23 19:54:13,200 - INFO - Remaining rows after cleaning: 3914
+2025-02-23 19:54:13,231 - INFO - Saved cleaned data to /Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/cleaned_reports/01-01-2021.csv with 3914 rows
+2025-02-23 19:54:13,232 - INFO - Batch processing completed.

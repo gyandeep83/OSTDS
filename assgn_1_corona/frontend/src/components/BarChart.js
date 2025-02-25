@@ -5,11 +5,7 @@ import axios from "axios";
 const API_URL = "http://127.0.0.1:8000/api/bar_chart/";
 
 const BarChart = () => {
-    const [chartData, setChartData] = useState({
-        labels: [],
-        activeCases: [],
-        recoveredCases: [],
-    });
+    const [chartData, setChartData] = useState({ labels: [], values: [] });
 
     useEffect(() => {
         fetchChartData();
@@ -18,10 +14,10 @@ const BarChart = () => {
     const fetchChartData = async () => {
         try {
             const response = await axios.get(API_URL);
+
             setChartData({
                 labels: response.data.labels,
-                activeCases: response.data.active_cases,
-                recoveredCases: response.data.recovered_cases,
+                values: response.data.active_cases,
             });
         } catch (error) {
             console.error("Error fetching bar chart data:", error);
@@ -29,27 +25,41 @@ const BarChart = () => {
     };
 
     return (
-        <div style={{ width: "800px", height: "400px" }}>
-        <Bar
-            data={{
-                labels: chartData.labels,
-                datasets: [
-                    {
-                        label: "Active Cases",
-                        data: chartData.activeCases,
-                        backgroundColor: "rgba(255, 99, 132, 0.6)", // Red
-                        maxBarThickness: 40, // Prevents overly wide bars
+        <div style={{ width: "90%", maxWidth: "800px", height: "400px", margin: "auto" }}>
+            <h3>Top 10 Countries by Active Cases</h3>
+            <Bar
+                data={{
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: "Active Cases",
+                            data: chartData.values,
+                            backgroundColor: "rgba(54, 162, 235, 0.6)",
+                            borderColor: "rgba(54, 162, 235, 1)",
+                            borderWidth: 1,
+                        },
+                    ],
+                }}
+                options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            ticks: {
+                                autoSkip: true,
+                                maxTicksLimit: 10,
+                            },
+                        },
+                        y: {
+                            beginAtZero: true,
+                        },
                     },
-                ],
-            }}
-            options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                devicePixelRatio: 1, // Fixes high DPI scaling issue
-            }}
-        />
-    </div>
-    
+                    plugins: {
+                        legend: { display: true, position: "top" },
+                    },
+                }}
+            />
+        </div>
     );
 };
 

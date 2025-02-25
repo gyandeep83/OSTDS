@@ -16,7 +16,6 @@ const PieChart = () => {
         try {
             const response = await axios.get(API_URL, { params: { metric } });
 
-            // Ensure exactly 10 states are returned
             setChartData({
                 labels: response.data.labels.slice(0, 10),
                 values: response.data.values.slice(0, 10),
@@ -28,7 +27,7 @@ const PieChart = () => {
 
     return (
         <div style={{ maxWidth: "500px", margin: "auto", textAlign: "center" }}>
-            <h3>Top 10 States by {metric === "confirmed" ? "Confirmed Cases" : "Deaths"}</h3>
+            <h3>Top 10 Countries by {metric === "confirmed" ? "Confirmed Cases" : "Deaths"}</h3>
 
             {/* Dropdown for switching between Confirmed Cases and Deaths */}
             <select 

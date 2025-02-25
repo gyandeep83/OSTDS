@@ -15,8 +15,8 @@ const LineChart = () => {
         try {
             const response = await axios.get(API_URL);
             setChartData({
-                labels: response.data.labels,
-                values: response.data.cfr_values,
+                labels: response.data.labels, // Country names
+                values: response.data.cfr_values, // CFR values
             });
         } catch (error) {
             console.error("Error fetching line chart data:", error);
@@ -24,8 +24,8 @@ const LineChart = () => {
     };
 
     return (
-        <div style={{ width: "90%", maxWidth: "800px", height: "400px", margin: "auto" }}> {/* ✅ Fix for canvas size */}
-            <h3>Top 10 States by Case Fatality Ratio (CFR)</h3>
+        <div style={{ width: "90%", maxWidth: "800px", height: "400px", margin: "auto" }}>
+            <h3>Top 10 Countries by Case Fatality Ratio (CFR)</h3>
             <Line
                 data={{
                     labels: chartData.labels,
@@ -36,29 +36,39 @@ const LineChart = () => {
                             borderColor: "#FF6384",
                             backgroundColor: "rgba(255, 99, 132, 0.2)",
                             fill: true,
+                            tension: 0.3, // ✅ Slight curve for a smoother look
                         },
                     ],
                 }}
                 options={{
                     responsive: true,
-                    maintainAspectRatio: false, 
+                    maintainAspectRatio: false,
                     scales: {
                         x: {
                             ticks: {
-                                maxRotation: 45, // ✅ Prevents overlapping labels
+                                maxRotation: 45, 
                                 minRotation: 0,
-                                autoSkip: true, // ✅ Skips some labels to reduce clutter
-                                maxTicksLimit: 10, // ✅ Limits labels shown
+                                autoSkip: true,
+                                maxTicksLimit: 10,
                             },
                         },
                         y: {
                             beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: "CFR (%)",
+                            },
                         },
                     },
                     plugins: {
                         legend: {
                             display: true,
                             position: "top",
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.raw.toFixed(2)}%`,
+                            },
                         },
                     },
                 }}
@@ -68,4 +78,3 @@ const LineChart = () => {
 };
 
 export default LineChart;
-

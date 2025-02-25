@@ -1,3 +1,9 @@
+#view.py-Consist of Various functions.
+#Author-Gyan deep, (gd034281@gmail.com)
+#Description-Backend programs for rendering visualizations.
+
+
+
 from django.shortcuts import render
 
 # Create your views here.
@@ -21,16 +27,31 @@ from rest_framework.decorators import api_view
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime, timedelta
 
-# Load the CSV file
-DATA_PATH = "/Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/processed_data.csv"
+# Define the directory containing all time series CSV files
+
+DATA_DIR = " "
 
 # Function to get time-series data of COVID-19 cases
 def get_time_series_data(request):
     try:
-        df = pd.read_csv(DATA_PATH, parse_dates=["Last_Update"])
+        all_dataframes = []
+        
+        for filename in os.listdir(DATA_DIR):
+            if filename.endswith(".csv"):
+                file_path = os.path.join(DATA_DIR, filename)
+                df = pd.read_csv(file_path, parse_dates=["Last_Update"], low_memory=False)
+                all_dataframes.append(df)
+        
+        if not all_dataframes:
+            return JsonResponse({"error": "No valid data files found."}, status=500)
+        
+        df = pd.concat(all_dataframes, ignore_index=True)
+        
+        # Convert to weekly data by summing cases within each week
+        df["Last_Update"] = pd.to_datetime(df["Last_Update"])
+        df["Week"] = df["Last_Update"].dt.to_period("W").apply(lambda r: r.start_time)
 
-        # Group by date and sum cases
-        time_series = df.groupby("Last_Update").agg({
+        time_series = df.groupby("Week").agg({
             "Confirmed": "sum",
             "Deaths": "sum",
             "Recovered": "sum"
@@ -43,273 +64,214 @@ def get_time_series_data(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-# Function to generate a correlation heatmap of selected COVID-19 metrics
-def correlation_heatmap(request):
-    try:
-        # Load dataset from CSV
-        file_path = "/Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/processed_data.csv"
-        df = pd.read_csv(file_path)
-
-        # Rename column for consistency
-        df.rename(columns={"Last_Update": "Date"}, inplace=True)
-        df["Date"] = pd.to_datetime(df["Date"])  # Convert to datetime
-
-        # Get filter parameters from frontend
-        selected_columns = request.GET.getlist("columns[]")  # Example: ["Confirmed", "Deaths", "Active"]
-        start_date = request.GET.get("start_date", "2021-01-01")
-        end_date = request.GET.get("end_date", "2021-12-31")
-
-        # Convert filter values to datetime
-        start_date = pd.to_datetime(start_date, errors="coerce")
-        end_date = pd.to_datetime(end_date, errors="coerce")
-
-        # Validate start_date and end_date
-        if start_date is pd.NaT or end_date is pd.NaT:
-            return JsonResponse({"error": "Invalid date format"}, status=400)
-
-        # Filter based on date range
-        df = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
-
-        # Default columns for correlation if none are selected
-        default_columns = ["Confirmed", "Deaths", "Recovered", "Active", "Incident_Rate", "Case_Fatality_Ratio"]
-
-        # Filter only selected columns, fallback to default if none selected
-        if selected_columns:
-            selected_columns = [col for col in selected_columns if col in df.columns]
-        else:
-            selected_columns = default_columns
-
-        # Ensure there are valid columns to process
-        if not selected_columns:
-            return JsonResponse({"error": "No valid columns selected"}, status=400)
-
-        df = df[selected_columns]
-
-        # Compute correlation matrix
-        correlation_matrix = df.corr()
-
-        # Generate Heatmap
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5, ax=ax)
-
-        # Explicitly render the figure
-        fig.canvas.draw()
-
-        # Save image in memory
-        buf = io.BytesIO()
-        fig.savefig(buf, format="png", bbox_inches="tight")
-        plt.close(fig)  # Ensure figure is closed to free memory
-
-        buf.seek(0)
-        return HttpResponse(buf.getvalue(), content_type="image/png")
-
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-
-
-
 def line_chart_data(request):
-    file_path = "/Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/processed_data.csv"
-    
-    # Load CSV
-    df = pd.read_csv(file_path)
+    directory_path = " "
+
+    # Get all CSV files in the cleaned directory
+    all_files = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith(".csv")]
+
+    if not all_files:
+        return JsonResponse({"error": "No CSV files found in the directory"}, status=500)
+
+    # Load and combine all CSV files
+    df_list = []
+    for file in all_files:
+        try:
+            df_temp = pd.read_csv(file)
+            if not df_temp.empty:
+                df_list.append(df_temp)
+        except Exception as e:
+            print(f"Error reading {file}: {e}")
+
+    if not df_list:
+        return JsonResponse({"error": "All CSV files are empty or corrupted"}, status=500)
+
+    df = pd.concat(df_list, ignore_index=True)
 
     # Ensure required columns exist
-    required_columns = ["Province_State", "Confirmed", "Deaths"]
-    missing_columns = [col for col in required_columns if col not in df.columns]
-    if missing_columns:
-        return JsonResponse({"error": f"Missing columns in CSV: {missing_columns}"}, status=400)
+    required_columns = ["Country_Region", "Confirmed", "Deaths"]
+    if not all(col in df.columns for col in required_columns):
+        return JsonResponse({"error": f"Missing required columns in CSV"}, status=400)
 
-    # Replace zero confirmed cases to avoid division by zero
-    df["Confirmed"].replace(0, pd.NA, inplace=True)
+    # Convert Confirmed and Deaths to numeric, forcing errors to NaN
+    df["Confirmed"] = pd.to_numeric(df["Confirmed"], errors="coerce")
+    df["Deaths"] = pd.to_numeric(df["Deaths"], errors="coerce")
+
+    # Drop rows where 'Confirmed' is NaN or 0 to avoid division issues
+    df = df[df["Confirmed"] > 0]
 
     # Compute Case Fatality Ratio (CFR)
     df["CFR"] = (df["Deaths"] / df["Confirmed"]) * 100
 
-    # Aggregate CFR by state
-    state_cfr = df.groupby("Province_State")["CFR"].mean().reset_index()
+    # Aggregate CFR by country
+    country_cfr = df.groupby("Country_Region", as_index=False)["CFR"].mean()
 
-    # Sort and get top 10 states with highest CFR
-    top_states = state_cfr.sort_values(by="CFR", ascending=False).head(10)
+    # Sort and get top 10 countries with highest CFR
+    top_countries = country_cfr.sort_values(by="CFR", ascending=False).head(10)
 
     # Prepare response
     response_data = {
-        "labels": top_states["Province_State"].tolist(),
-        "cfr_values": top_states["CFR"].tolist()
+        "labels": top_countries["Country_Region"].tolist(),
+        "cfr_values": top_countries["CFR"].tolist()
     }
 
     return JsonResponse(response_data)
 
 
-# Hardcoded US state coordinates used for geographic visualizations
-us_state_coordinates = {
-    "Alabama": [32.8067, -86.7911],
-    "Alaska": [61.3707, -152.4044],
-    "Arizona": [33.7298, -111.4312],
-    "Arkansas": [34.7465, -92.2896],
-    "California": [36.7783, -119.4179],
-    "Colorado": [39.5501, -105.7821],
-    "Connecticut": [41.6032, -73.0877],
-    "Delaware": [38.9108, -75.5277],
-    "Florida": [27.9944, -81.7603],
-    "Georgia": [32.1656, -82.9001],
-    "Hawaii": [20.7967, -156.3319],
-    "Idaho": [44.0682, -114.742],
-    "Illinois": [40.6331, -89.3985],
-    "Indiana": [40.2672, -86.1349],
-    "Iowa": [41.878, -93.0977],
-    "Kansas": [39.0119, -98.4842],
-    "Kentucky": [37.8393, -84.270],
-    "Louisiana": [30.9843, -91.9623],
-    "Maine": [45.2538, -69.4455],
-    "Maryland": [39.0458, -76.6413],
-    "Massachusetts": [42.4072, -71.3824],
-    "Michigan": [44.3148, -85.6024],
-    "Minnesota": [46.7296, -94.6859],
-    "Mississippi": [32.3547, -89.3985],
-    "Missouri": [37.9643, -91.8318],
-    "Montana": [46.8797, -110.3626],
-    "Nebraska": [41.4925, -99.9018],
-    "Nevada": [38.8026, -116.4194],
-    "New Hampshire": [43.1939, -71.5724],
-    "New Jersey": [40.0583, -74.4057],
-    "New Mexico": [34.5199, -105.8701],
-    "New York": [40.7128, -74.006],
-    "North Carolina": [35.7596, -79.0193],
-    "North Dakota": [47.5515, -101.002],
-    "Ohio": [40.4173, -82.9071],
-    "Oklahoma": [35.4676, -97.5164],
-    "Oregon": [43.8041, -120.5542],
-    "Pennsylvania": [41.2033, -77.1945],
-    "Rhode Island": [41.5801, -71.4774],
-    "South Carolina": [33.8361, -81.1637],
-    "South Dakota": [44.2998, -99.4388],
-    "Tennessee": [35.5175, -86.5804],
-    "Texas": [31.9686, -99.9018],
-    "Utah": [39.3209, -111.0937],
-    "Vermont": [44.5588, -72.5778],
-    "Virginia": [37.4316, -78.6569],
-    "Washington": [47.7511, -120.7401],
-    "West Virginia": [38.5976, -80.4549],
-    "Wisconsin": [43.7844, -88.7879],
-    "Wyoming": [43.07597, -107.2903]
+
+"""
+Returns COVID-19 data aggregated by country regions.
+Used for plotting.
+"""
+
+# Directory where CSV files are stored
+BASE_DIR = " "
+
+# File names (picking the correct ones)
+FILES = {
+    "confirmed": "time_series_covid19_confirmed_global.csv",
+    "deaths": "time_series_covid19_deaths_global.csv",
+    "recovered": "time_series_covid19_recovered_global.csv",
 }
 
-
-"""
-Returns COVID-19 data aggregated by US state along with their coordinates.
-The data includes total confirmed cases and deaths.
-"""
 def geographic_data(request):
-    file_path = "/Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/processed_data.csv"
-    
-    # Load CSV
-    df = pd.read_csv(file_path)
-    
-    # Ensure relevant columns exist
-    required_columns = ["Province_State", "Confirmed", "Deaths"]
-    missing_columns = [col for col in required_columns if col not in df.columns]
-    if missing_columns:
-        return JsonResponse({"error": f"Missing columns in CSV: {missing_columns}"}, status=400)
+    dataframes = {}
 
-    # Group by state to aggregate confirmed cases and deaths
-    state_data = df.groupby("Province_State")[["Confirmed", "Deaths"]].sum().reset_index()
+    # Load all datasets
+    for key, filename in FILES.items():
+        file_path = os.path.join(BASE_DIR, filename)
+        try:
+            dataframes[key] = pd.read_csv(file_path)
+        except FileNotFoundError:
+            return JsonResponse({"error": f"File not found: {filename}"}, status=404)
 
-    # Prepare JSON response
-    response_data = []
+    # Ensure required columns exist
+    required_columns = ["Country/Region", "Lat", "Long"]
+    for key, df in dataframes.items():
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            return JsonResponse({"error": f"Missing columns in {FILES[key]}: {missing_columns}"}, status=400)
 
-    # Iterate over all states and add data (even if missing from CSV)
-    for state, coordinates in us_state_coordinates.items():
-        row = state_data[state_data["Province_State"] == state]
-        confirmed = int(row["Confirmed"].sum()) if not row.empty else 0
-        deaths = int(row["Deaths"].sum()) if not row.empty else 0
+    # Process each dataset
+    for key in dataframes:
+        date_columns = dataframes[key].columns[4:]  # Date columns start from 5th column
+        dataframes[key]["Total"] = dataframes[key][date_columns].sum(axis=1, numeric_only=True)
 
-        response_data.append({
-            "state": state,
-            "latitude": coordinates[0],
-            "longitude": coordinates[1],
-            "confirmed": confirmed,
-            "deaths": deaths
-        })
-    
+        # Keep only necessary columns
+        dataframes[key] = dataframes[key][["Country/Region", "Lat", "Long", "Total"]]
+
+    # Merge datasets
+    merged_df = dataframes["confirmed"].merge(
+        dataframes["deaths"], on=["Country/Region", "Lat", "Long"], suffixes=("_confirmed", "_deaths")
+    ).merge(
+        dataframes["recovered"], on=["Country/Region", "Lat", "Long"], suffixes=("", "_recovered")
+    )
+
+    # Rename columns for clarity
+    merged_df.rename(columns={"Total_confirmed": "Total_Confirmed", 
+                              "Total_deaths": "Total_Deaths", 
+                              "Total": "Total_Recovered"}, inplace=True)
+
+    # Handle NaN values and ensure JSON serialization compatibility
+    merged_df = merged_df.fillna(0)  # Replace NaN with 0
+    response_data = merged_df.to_dict(orient="records")
+
+    # Convert NumPy integers to standard Python integers
+    for entry in response_data:
+        for key in ["Total_Confirmed", "Total_Deaths", "Total_Recovered"]:
+            entry[key] = int(entry[key]) if not np.isnan(entry[key]) else 0  # Ensure no NaN
+
     return JsonResponse(response_data, safe=False)
-
 
 """
 Returns data for a pie chart showing the top 10 states with the highest confirmed cases or deaths.
 The metric (confirmed cases or deaths) is determined from the request.
 """
 def pie_chart_data(request):
-    file_path = "/Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/processed_data.csv"
-    
-    # Load CSV
-    df = pd.read_csv(file_path)
+    directory_path = " "
+
+    # Read all CSV files in the directory
+    all_files = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith(".csv")]
+
+    # Load and combine CSVs
+    df_list = [pd.read_csv(file) for file in all_files]
+    df = pd.concat(df_list, ignore_index=True)
 
     # Ensure required columns exist
-    required_columns = ["Province_State", "Confirmed", "Deaths"]
+    required_columns = ["Country_Region", "Confirmed", "Deaths"]
     missing_columns = [col for col in required_columns if col not in df.columns]
     if missing_columns:
         return JsonResponse({"error": f"Missing columns in CSV: {missing_columns}"}, status=400)
 
     # Get metric from request (default to 'confirmed')
-    metric = request.GET.get("metric", "confirmed")
+    metric = request.GET.get("metric", "confirmed").lower()
     if metric not in ["confirmed", "deaths"]:
         return JsonResponse({"error": "Invalid metric"}, status=400)
 
-    # Aggregate by state
-    state_data = df.groupby("Province_State")[["Confirmed", "Deaths"]].sum().reset_index()
+    # Aggregate by country
+    country_data = df.groupby("Country_Region")[["Confirmed", "Deaths"]].sum().reset_index()
 
-    # Sort and get top 10 states
-    sorted_data = state_data.sort_values(by="Confirmed" if metric == "confirmed" else "Deaths", ascending=False).head(10)
+    # Sort and get top 10 countries based on the selected metric
+    sorted_data = country_data.sort_values(by=metric.capitalize(), ascending=False).head(10)
 
     # Prepare response
     response_data = {
-        "labels": sorted_data["Province_State"].tolist(),
-        "values": sorted_data["Confirmed" if metric == "confirmed" else "Deaths"].tolist()
+        "labels": sorted_data["Country_Region"].tolist(),
+        "values": sorted_data[metric.capitalize()].tolist()
     }
 
     return JsonResponse(response_data)
-
 
 """
 Returns data for a bar chart displaying the top 10 states with the highest number of active cases.
 """
 def bar_chart_data(request):
-    file_path = "/Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/processed_data.csv"
-    
-    # Load CSV
-    df = pd.read_csv(file_path)
+    directory = " "
+
+    # Read all CSV files in the directory
+    csv_files = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(".csv")]
+    if not csv_files:
+        return JsonResponse({"error": "No CSV files found in directory"}, status=400)
+
+    # Load all CSVs into a single DataFrame
+    df_list = [pd.read_csv(file) for file in csv_files]
+    df = pd.concat(df_list, ignore_index=True)
 
     # Ensure required columns exist
-    if "Province_State" not in df.columns or "Active" not in df.columns:
+    if "Country_Region" not in df.columns or "Active" not in df.columns:
         return JsonResponse({"error": "Missing required columns in CSV"}, status=400)
 
-    # Aggregate Active cases by state
-    state_data = df.groupby("Province_State")["Active"].sum().reset_index()
+    # Aggregate Active cases by country
+    country_data = df.groupby("Country_Region")["Active"].sum().reset_index()
 
-    # Sort and get top 10 states by Active cases
-    sorted_data = state_data.sort_values(by="Active", ascending=False).head(10)
+    # Sort and get top 10 countries by Active cases
+    sorted_data = country_data.sort_values(by="Active", ascending=False).head(10)
 
     # Prepare response
     response_data = {
-        "labels": sorted_data["Province_State"].tolist(),
+        "labels": sorted_data["Country_Region"].tolist(),
         "active_cases": sorted_data["Active"].tolist()
     }
 
     return JsonResponse(response_data)
 
-
 """
 Returns data for a scatter plot comparing the incident rate and case fatality ratio (CFR) for the top 10 states.
 """
 def scatter_plot_data(request):
-    file_path = "/Users/gyandeep/OSTDS/assgn_1_corona/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/processed_data.csv"
+    directory = " "
 
-    # Load CSV
-    df = pd.read_csv(file_path)
+    # Read all CSV files in the directory
+    csv_files = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(".csv")]
+    if not csv_files:
+        return JsonResponse({"error": "No CSV files found in directory"}, status=400)
+
+    # Load all CSVs into a single DataFrame
+    df_list = [pd.read_csv(file) for file in csv_files]
+    df = pd.concat(df_list, ignore_index=True)
 
     # Ensure required columns exist
-    required_columns = ["Province_State", "Incident_Rate", "Case_Fatality_Ratio"]
+    required_columns = ["Country_Region", "Incident_Rate", "Case_Fatality_Ratio"]
     missing_columns = [col for col in required_columns if col not in df.columns]
     if missing_columns:
         return JsonResponse({"error": f"Missing columns in CSV: {missing_columns}"}, status=400)
@@ -317,14 +279,18 @@ def scatter_plot_data(request):
     # Drop rows with missing values in required columns
     df = df.dropna(subset=required_columns)
 
-    # Sort by highest incident rate and get top 10 states
-    sorted_data = df.sort_values(by="Incident_Rate", ascending=False).head(10)
+    # Aggregate by country and calculate average values
+    country_data = df.groupby("Country_Region")[["Incident_Rate", "Case_Fatality_Ratio"]].mean().reset_index()
+
+    # Sort by highest incident rate and get top 10 countries
+    sorted_data = country_data.sort_values(by="Incident_Rate", ascending=False).head(10)
 
     # Prepare response
     response_data = {
-        "states": sorted_data["Province_State"].tolist(),
+        "countries": sorted_data["Country_Region"].tolist(),
         "incident_rates": sorted_data["Incident_Rate"].tolist(),
         "cfr_values": sorted_data["Case_Fatality_Ratio"].tolist(),
     }
 
+    return JsonResponse(response_data)
     return JsonResponse(response_data)

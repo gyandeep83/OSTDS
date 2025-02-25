@@ -5,7 +5,7 @@ import axios from "axios";
 const API_URL = "http://127.0.0.1:8000/api/scatter_plot/";
 
 const ScatterPlot = () => {
-    const [chartData, setChartData] = useState({ labels: [], datasets: [] });
+    const [chartData, setChartData] = useState({ datasets: [] });
 
     useEffect(() => {
         fetchChartData();
@@ -14,19 +14,20 @@ const ScatterPlot = () => {
     const fetchChartData = async () => {
         try {
             const response = await axios.get(API_URL);
-            const { states, incident_rates, cfr_values } = response.data;
+
+            const { countries, incident_rates, cfr_values } = response.data;
 
             setChartData({
-                labels: states,
+                labels: countries,
                 datasets: [
                     {
-                        label: "Mortality vs. Infection Rate",
-                        data: states.map((state, index) => ({
+                        label: "Incident Rate vs. Case Fatality Ratio",
+                        data: countries.map((_, index) => ({
                             x: incident_rates[index],
                             y: cfr_values[index],
                         })),
-                        backgroundColor: "#FF6384",
-                        pointRadius: 6,
+                        backgroundColor: "rgba(75,192,192,0.6)",
+                        borderColor: "rgba(75,192,192,1)",
                     },
                 ],
             });
@@ -36,20 +37,24 @@ const ScatterPlot = () => {
     };
 
     return (
-        <div style={{ width: "80%", height: "500px", margin: "auto" }}>
-    <Scatter
-        data={chartData}
-        options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: { title: { display: true, text: "Incident Rate" } },
-                y: { title: { display: true, text: "Case Fatality Ratio (%)" } },
-            },
-        }}
-    />
-</div>
-
+        <div style={{ width: "90%", maxWidth: "800px", height: "400px", margin: "auto" }}>
+            <h3>Top 10 Countries: Incident Rate vs. Case Fatality Ratio</h3>
+            <Scatter
+                data={chartData}
+                options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: "Incident Rate" },
+                        },
+                        y: {
+                            title: { display: true, text: "Case Fatality Ratio (%)" },
+                        },
+                    },
+                }}
+            />
+        </div>
     );
 };
 

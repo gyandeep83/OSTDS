@@ -12,10 +12,15 @@ const TimeSeriesChart = () => {
         axios.get("http://127.0.0.1:8000/api/time-series/")
             .then(response => {
                 const data = response.data.time_series;
-                const labels = data.map(entry => new Date(entry.Last_Update).toLocaleDateString());
-                const confirmedCases = data.map(entry => entry.Confirmed);
-                const deaths = data.map(entry => entry.Deaths);
-                const recovered = data.map(entry => entry.Recovered);
+
+                // Format week dates for better readability
+                const labels = data.map(entry => new Date(entry.Week).toLocaleDateString("en-US", { 
+                    year: "numeric", month: "short", day: "numeric"
+                }));
+
+                const confirmedCases = data.map(entry => entry.Confirmed || 0);
+                const deaths = data.map(entry => entry.Deaths || 0);
+                const recovered = data.map(entry => entry.Recovered || 0);
 
                 setChartData({
                     labels,
@@ -47,7 +52,19 @@ const TimeSeriesChart = () => {
     return (
         <div>
             <h2>COVID-19 Time Series Data</h2>
-            {chartData ? <Line data={chartData} /> : <p>Loading...</p>}
+            {chartData ? <Line 
+                data={chartData} 
+                options={{
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 10, // Limit number of labels
+                                autoSkip: true // Skip labels if too many
+                            }
+                        }
+                    }
+                }}
+            /> : <p>Loading...</p>}
         </div>
     );
 };

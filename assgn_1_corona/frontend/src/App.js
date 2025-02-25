@@ -1,7 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import TimeSeriesChart from "./components/TimeSeriesChart";
-import Heatmap from "./components/Heatmap";
 import PieChart from "./components/PieChart";
 import GeographicMap from "./components/GeographicMap";
 import BarChart from "./components/BarChart";
@@ -63,7 +62,6 @@ function App() {
         <nav className="nav-container">
           <ul className="nav-list">
             <li><Link className="nav-link" to="/">Time Series</Link></li>
-            <li><Link className="nav-link" to="/heatmap">Heatmap</Link></li>
             <li><Link className="nav-link" to="/piechart">Pie Chart</Link></li>
             <li><Link className="nav-link" to="/geographic-map">Geographic Spread</Link></li>
             <li><Link className="nav-link" to="/bar-chart">Bar Chart</Link></li>
@@ -77,7 +75,6 @@ function App() {
         <div style={{ padding: "0 2rem" }}>
           <Routes>
             <Route path="/" element={<TimeSeriesChart />} />
-            <Route path="/heatmap" element={<Heatmap />} />
             <Route path="/piechart" element={<PieChart />} />
             <Route path="/geographic-map" element={<GeographicMap />} />
             <Route path="/bar-chart" element={<BarChart />} />
